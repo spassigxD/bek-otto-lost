@@ -1,4 +1,5 @@
-const PLAYERS = ["Fynn", "Muchel", "Bjarne", "Lucas", "Jona"];
+/** Canonical roster — column headers ALWAYS use this list (never Firebase/localStorage keys). */
+const PLAYERS = Object.freeze(["Fynn", "Muchel", "Bjarne", "Lucas", "Jona"]);
 
 const DAYS = [
   { id: "monday", label: "Monday", class: "monday" },

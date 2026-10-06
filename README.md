@@ -148,8 +148,8 @@ Statische Assets nutzen Query-Parameter `?v=…`, damit Browser nach Deploy nich
 
 | Seite | Stand (Beispiel) |
 |-------|------------------|
-| `team-comps.html` | `styles.css?v=39`, `team-comps.js?v=39` |
-| `index.html` | `?v=28` |
+| `team-comps.html` | `styles.css?v=50`, `team-comps.js?v=50` |
+| `index.html` | `?v=50` |
 | `strats-map.html` | `styles.css?v=36`, `strats-map.js?v=35` |
 
 ### Git & Deploy
