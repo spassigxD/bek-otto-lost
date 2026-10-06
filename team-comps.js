@@ -13,6 +13,7 @@ const MAPS = [
   { id: "pearl", label: "Pearl" },
   { id: "corrode", label: "Corrode" },
   { id: "split", label: "Split" },
+  { id: "sunset", label: "Sunset" },
 ];
 
 /** Playable roster (valorant-api.com, matches strats.gg lineup pool) */
