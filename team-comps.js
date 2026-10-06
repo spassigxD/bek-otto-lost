@@ -74,7 +74,27 @@ let dbRef = null;
 let firebaseBootstrapped = false;
 let firebaseSdkTimer = null;
 let saveTimer = null;
-let lastPushedJson = null;
+/** Firebase writes stay off until the first remote snapshot is applied. */
+let remoteReady = false;
+/** Explicit "delete every comp" — the only full-node replace. */
+let replaceAll = false;
+let persistRetries = 0;
+const dirtyKeys = new Set();
+const deleteKeys = new Set();
+let writeQueue = Promise.resolve();
+
+/** Names removed from the roster. Anything else unknown is left untouched. */
+const LEGACY_PLAYERS = new Set([
+  "joletsgo",
+  "joletsgoo",
+  "spassig",
+  "spassigxd",
+  "stefan",
+  "horus",
+  "haidew",
+  "pascal",
+  "keena",
+]);
 
 function isFirebaseConfigured() {
   const c = window.FIREBASE_CONFIG;
@@ -92,29 +112,103 @@ function cellKey(mapId, player) {
   return `${mapId}|${player}`;
 }
 
-/** Drop stored cells for players/maps outside the code roster so old names never linger. */
-function pruneCompsToRoster(raw) {
-  if (!raw || typeof raw !== "object") return {};
-  const mapIds = new Set(MAPS.map((m) => m.id));
-  const next = {};
+function canonicalMapId(raw) {
+  return String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+}
+
+function canonicalPlayer(raw) {
+  const trimmed = String(raw ?? "").trim();
+  return PLAYERS.find((player) => player.toLowerCase() === trimmed.toLowerCase()) || trimmed;
+}
+
+function isLegacyPlayer(name) {
+  return LEGACY_PLAYERS.has(String(name ?? "").trim().toLowerCase());
+}
+
+function sameAgents(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  return a.every((name, index) => name === b[index]);
+}
+
+/** Accept arrays, a single name, or Firebase's numeric-key objects. Unknown names stay. */
+function normalizeAgentList(value) {
+  let list = null;
+  if (Array.isArray(value)) {
+    list = value;
+  } else if (typeof value === "string") {
+    list = [value];
+  } else if (value && typeof value === "object") {
+    const keys = Object.keys(value);
+    if (keys.length && keys.every((key) => /^\d+$/.test(key))) {
+      list = keys.sort((a, b) => Number(a) - Number(b)).map((key) => value[key]);
+    }
+  }
+  if (!list) return null;
+  const agents = [];
+  for (const entry of list) {
+    if (typeof entry !== "string") continue;
+    const name = entry.trim();
+    if (!name || agents.includes(name)) continue;
+    agents.push(name);
+    if (agents.length >= MAX_AGENTS_PER_CELL) break;
+  }
+  return agents;
+}
+
+/**
+ * Keep every map (Abyss included), even if this page does not list it.
+ * Legacy player keys are only queued for a surgical delete — never by
+ * replacing the whole comps node.
+ */
+function normalizeComps(raw) {
+  const cells = {};
+  const removeKeys = [];
+  const writeKeys = new Set();
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { cells, removeKeys, writeKeys: [] };
+  }
+
   for (const [key, value] of Object.entries(raw)) {
     const sep = key.indexOf("|");
     if (sep < 0) continue;
-    const mapId = key.slice(0, sep);
-    const player = key.slice(sep + 1);
-    if (!mapIds.has(mapId) || !PLAYER_SET.has(player)) continue;
-    if (Array.isArray(value) && value.length) next[key] = value;
+
+    const mapId = canonicalMapId(key.slice(0, sep));
+    const player = canonicalPlayer(key.slice(sep + 1));
+    if (!mapId || !player) continue;
+
+    if (!PLAYER_SET.has(player)) {
+      if (isLegacyPlayer(player)) removeKeys.push(key);
+      continue;
+    }
+
+    const agents = normalizeAgentList(value);
+    const canonical = cellKey(mapId, player);
+    if (!agents) continue;
+    if (!agents.length) {
+      if (canonical !== key) removeKeys.push(key);
+      continue;
+    }
+
+    const already = cells[canonical];
+    const merged = already ? [...already] : [];
+    for (const agent of agents) {
+      if (!merged.includes(agent) && merged.length < MAX_AGENTS_PER_CELL) merged.push(agent);
+    }
+    if (canonical !== key) {
+      removeKeys.push(key);
+      if (!sameAgents(already, merged)) writeKeys.add(canonical);
+    }
+    cells[canonical] = merged;
   }
-  return next;
+
+  return { cells, removeKeys, writeKeys: [...writeKeys] };
 }
 
-function assignComps(raw, { persistIfPruned = false } = {}) {
-  const source = raw && typeof raw === "object" ? raw : {};
-  const pruned = pruneCompsToRoster(source);
-  const changed = JSON.stringify(pruned) !== JSON.stringify(source);
-  comps = pruned;
-  if (persistIfPruned && changed) schedulePersist();
-  return changed;
+function assignComps(raw) {
+  comps = normalizeComps(raw).cells;
 }
 
 function mapLabel(mapId) {
@@ -131,14 +225,29 @@ function getCellAgents(mapId, player) {
 }
 
 function setCellAgents(mapId, player, agents) {
-  if (!PLAYER_SET.has(player)) return;
-  const key = cellKey(mapId, player);
-  const list = agents.filter(Boolean).slice(0, MAX_AGENTS_PER_CELL);
+  const canonPlayer = canonicalPlayer(player);
+  if (!PLAYER_SET.has(canonPlayer)) return;
+  const canonMap = canonicalMapId(mapId);
+  if (!canonMap) return;
+  const key = cellKey(canonMap, canonPlayer);
+  const list = [];
+  for (const agent of agents) {
+    if (typeof agent !== "string") continue;
+    const name = agent.trim();
+    if (!name || list.includes(name)) continue;
+    list.push(name);
+    if (list.length >= MAX_AGENTS_PER_CELL) break;
+  }
   if (list.length) {
     comps[key] = list;
+    dirtyKeys.add(key);
+    deleteKeys.delete(key);
   } else {
     delete comps[key];
+    dirtyKeys.delete(key);
+    deleteKeys.add(key);
   }
+  persistRetries = 0;
   schedulePersist();
 }
 
@@ -164,12 +273,21 @@ function schedulePersist() {
   saveTimer = setTimeout(persistComps, 150);
 }
 
-async function persistCompsViaRest() {
+function noteWriteSuccess() {
+  persistRetries = 0;
+  setSyncStatus("live");
+}
+
+function isPermissionDenied(err) {
+  return err?.code === "PERMISSION_DENIED" || err?.code === "permission_denied";
+}
+
+async function persistJson(method, body) {
   const url = `${firebaseRestBase()}/${FIREBASE_COMPS_PATH}.json`;
   const res = await fetch(url, {
-    method: "PUT",
+    method,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(comps),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const err = new Error(`http_${res.status}`);
@@ -178,32 +296,95 @@ async function persistCompsViaRest() {
   }
 }
 
-function persistComps() {
-  const json = JSON.stringify(comps);
-  saveCompsToLocalStorage();
-
-  if (!useFirebase) return;
-
-  lastPushedJson = json;
-
-  const onWriteError = (err) => {
-    console.error("[firebase comps] write failed", err?.code, err?.message);
-    setSyncStatus(err?.code === "PERMISSION_DENIED" ? "error-rules" : "offline-local");
-    persistCompsViaRest()
-      .then(() => setSyncStatus("live"))
-      .catch((restErr) => {
-        console.error("[firebase comps] REST write failed", restErr?.code, restErr?.message);
-        setSyncStatus(
-          restErr?.code === "PERMISSION_DENIED" ? "error-rules" : "offline-local"
-        );
+function enqueueFirebaseWrite(work) {
+  const run = () =>
+    Promise.resolve()
+      .then(work)
+      .catch((err) => {
+        console.error("[firebase comps] write failed", err?.code, err?.message);
+        setSyncStatus(isPermissionDenied(err) ? "error-rules" : "offline-local");
       });
-  };
+  writeQueue = writeQueue.then(run, run);
+  return writeQueue;
+}
 
+function writePatch(patch) {
+  const viaRest = () => persistJson("PATCH", patch).then(noteWriteSuccess);
   if (dbRef) {
-    dbRef.set(comps).then(() => setSyncStatus("live")).catch(onWriteError);
-  } else {
-    persistCompsViaRest().then(() => setSyncStatus("live")).catch(onWriteError);
+    return dbRef.update(patch).then(noteWriteSuccess).catch(() => viaRest());
   }
+  return viaRest();
+}
+
+function writeFull(value) {
+  const viaRest = () => persistJson("PUT", value).then(noteWriteSuccess);
+  if (dbRef) {
+    return dbRef.set(value).then(noteWriteSuccess).catch(() => viaRest());
+  }
+  return viaRest();
+}
+
+function snapshotPatch() {
+  const patch = {};
+  for (const key of [...dirtyKeys]) {
+    if (!Object.prototype.hasOwnProperty.call(comps, key)) {
+      dirtyKeys.delete(key);
+      continue;
+    }
+    const value = comps[key];
+    patch[key] = Array.isArray(value) ? [...value] : value;
+    dirtyKeys.delete(key);
+  }
+  for (const key of [...deleteKeys]) {
+    if (!Object.prototype.hasOwnProperty.call(patch, key)) patch[key] = null;
+    deleteKeys.delete(key);
+  }
+  return patch;
+}
+
+function restorePatch(patch) {
+  for (const [key, value] of Object.entries(patch)) {
+    if (value == null) deleteKeys.add(key);
+    else dirtyKeys.add(key);
+  }
+}
+
+function retryWrite(err, restore) {
+  restore();
+  if (isPermissionDenied(err) || persistRetries >= 2) return;
+  persistRetries += 1;
+  schedulePersist();
+}
+
+/** Patch changed cells only. A full replace would wipe maps missing from a stale snapshot. */
+function persistComps() {
+  saveCompsToLocalStorage();
+  if (!useFirebase || !remoteReady) return;
+
+  if (replaceAll) {
+    replaceAll = false;
+    dirtyKeys.clear();
+    deleteKeys.clear();
+    enqueueFirebaseWrite(() =>
+      writeFull(null).catch((err) => {
+        retryWrite(err, () => {
+          replaceAll = true;
+        });
+        throw err;
+      })
+    );
+    return;
+  }
+
+  const patch = snapshotPatch();
+  if (!Object.keys(patch).length) return;
+
+  enqueueFirebaseWrite(() =>
+    writePatch(patch).catch((err) => {
+      retryWrite(err, () => restorePatch(patch));
+      throw err;
+    })
+  );
 }
 
 function setRetryVisible(visible) {
@@ -775,21 +956,85 @@ function onCellDrop(e) {
   }
 }
 
-function applyRemoteComps(remote) {
-  const pruned = pruneCompsToRoster(remote);
-  const json = JSON.stringify(pruned);
-  if (json === lastPushedJson) return;
-  const source = remote && typeof remote === "object" ? remote : {};
-  const prunedAway = JSON.stringify(pruned) !== JSON.stringify(source);
-  comps = pruned;
+function overlayPendingEdits(cells) {
+  const next = { ...cells };
+  for (const key of dirtyKeys) {
+    if (Object.prototype.hasOwnProperty.call(comps, key)) next[key] = comps[key];
+    else delete next[key];
+  }
+  for (const key of deleteKeys) delete next[key];
+  return next;
+}
+
+function queueServerDeletes(keys) {
+  let queued = false;
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(comps, key)) continue;
+    if (dirtyKeys.has(key) || deleteKeys.has(key)) continue;
+    deleteKeys.add(key);
+    queued = true;
+  }
+  return queued;
+}
+
+function applySnapshot(remote, { allowLocalMigration = false } = {}) {
+  if (replaceAll) {
+    comps = {};
+    remoteReady = true;
+    refreshAllCells();
+    saveCompsToLocalStorage();
+    schedulePersist();
+    setSyncStatus("live");
+    return;
+  }
+
+  const empty =
+    remote == null ||
+    (typeof remote === "object" && !Array.isArray(remote) && Object.keys(remote).length === 0);
+
+  if (allowLocalMigration && empty && !localStorage.getItem(MIGRATION_KEY)) {
+    const localCells = normalizeComps(loadCompsFromLocalStorage()).cells;
+    remoteReady = true;
+    if (Object.keys(localCells).length) {
+      comps = localCells;
+      for (const key of Object.keys(localCells)) dirtyKeys.add(key);
+      localStorage.setItem(MIGRATION_KEY, "1");
+      refreshAllCells();
+      saveCompsToLocalStorage();
+      schedulePersist();
+      setSyncStatus("live");
+      return;
+    }
+  }
+
+  if (Array.isArray(remote)) {
+    remoteReady = true;
+    setSyncStatus("live");
+    return;
+  }
+
+  const { cells, removeKeys, writeKeys } = normalizeComps(remote);
+  comps = overlayPendingEdits(cells);
+  remoteReady = true;
+  if (!empty) localStorage.setItem(MIGRATION_KEY, "1");
+
+  for (const key of writeKeys) {
+    if (!Object.prototype.hasOwnProperty.call(comps, key) || deleteKeys.has(key)) continue;
+    dirtyKeys.add(key);
+  }
+  const queuedDeletes = queueServerDeletes(removeKeys);
   refreshAllCells();
   saveCompsToLocalStorage();
-  if (prunedAway) schedulePersist();
+  if (queuedDeletes || dirtyKeys.size || deleteKeys.size) schedulePersist();
   setSyncStatus("live");
 }
 
+function applyRemoteComps(remote) {
+  applySnapshot(remote);
+}
+
 function bootstrapUI() {
-  assignComps(loadCompsFromLocalStorage(), { persistIfPruned: false });
+  assignComps(loadCompsFromLocalStorage());
   saveCompsToLocalStorage();
   buildAgentSidebar();
   buildCompsGrid();
@@ -815,26 +1060,7 @@ async function fetchCompsViaRest() {
 }
 
 function applyInitialRemoteComps(remote) {
-  const remoteComps = pruneCompsToRoster(remote);
-  const hasRemote = Object.keys(remoteComps).length > 0;
-  const localComps = pruneCompsToRoster(loadCompsFromLocalStorage());
-  const hasLocal = Object.keys(localComps).length > 0;
-  const migrated = localStorage.getItem(MIGRATION_KEY);
-  const rawRemote = remote && typeof remote === "object" ? remote : {};
-  const remoteHadExtras =
-    JSON.stringify(remoteComps) !== JSON.stringify(rawRemote);
-
-  if (!hasRemote && hasLocal && !migrated) {
-    comps = { ...localComps };
-    localStorage.setItem(MIGRATION_KEY, "1");
-    persistComps();
-  } else {
-    comps = remoteComps;
-    if (hasRemote) localStorage.setItem(MIGRATION_KEY, "1");
-    if (remoteHadExtras) persistComps();
-  }
-  refreshAllCells();
-  saveCompsToLocalStorage();
+  applySnapshot(remote, { allowLocalMigration: true });
 }
 
 function clearFirebaseSdkTimer() {
@@ -860,7 +1086,7 @@ function failFirebaseStartup(err) {
     err?.code === "PERMISSION_DENIED" || err?.code === "permission_denied";
   if (!firebaseBootstrapped) {
     firebaseBootstrapped = true;
-    assignComps(loadCompsFromLocalStorage(), { persistIfPruned: false });
+    assignComps(loadCompsFromLocalStorage());
     saveCompsToLocalStorage();
     refreshAllCells();
   }
@@ -983,8 +1209,12 @@ document.getElementById("resetAll")?.addEventListener("click", () => {
     return;
   }
   comps = {};
-  persistComps();
+  dirtyKeys.clear();
+  deleteKeys.clear();
+  replaceAll = true;
+  persistRetries = 0;
   refreshAllCells();
+  schedulePersist();
 });
 
 document.getElementById("retrySync")?.addEventListener("click", () => {
