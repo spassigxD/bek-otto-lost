@@ -9,6 +9,7 @@ const MAPS = [
   { id: "pearl", label: "Pearl" },
   { id: "corrode", label: "Corrode" },
   { id: "split", label: "Split" },
+  { id: "summit", label: "Summit" },
   { id: "sunset", label: "Sunset" },
 ];
 
