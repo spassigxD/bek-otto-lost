@@ -8,16 +8,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/spassigxD/zero-synergy-availability.git"
+    "url": "git+https://github.com/spassigxD/bek-otto-lost.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/spassigxD/zero-synergy-availability/issues"
+    "url": "https://github.com/spassigxD/bek-otto-lost/issues"
   },
-  "homepage": "https://github.com/spassigxD/zero-synergy-availability#readme",
+  "homepage": "https://github.com/spassigxD/bek-otto-lost#readme",
   "dependencies": {
     "firebase": "^12.13.0"
   }

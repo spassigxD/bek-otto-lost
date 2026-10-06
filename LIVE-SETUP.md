@@ -1,6 +1,6 @@
 # Live-Website (GitHub Pages) — Strats-Upload
 
-Kurz erklärt, was die Meldungen auf **spassigxd.github.io** bedeuten und was du tun musst.
+Kurz erklärt, was die Meldungen auf **spassigxd.github.io/bek-otto-lost** bedeuten und was du tun musst.
 
 - **`firebase-config.js fehlt auf der Website`** — Die Datei liegt lokal vor, wurde aber nicht mit auf GitHub gepusht (oder die Seite lädt sie nicht). Ohne sie kennt die Live-Seite dein Firebase-Projekt nicht. Lösung: `firebase-config.js` ins Repo committen und pushen (API-Keys sind für Web-Apps öffentlich vorgesehen).
 - **`storageBucket fehlt … bitte deployen`** — Die Config ist auf dem Server unvollständig (nur Database, kein Storage-Bucket). In `firebase-config.js` muss `storageBucket: "znrgy-ccb87.firebasestorage.app"` stehen — Wert aus Firebase Console → Projekteinstellungen → Deine Apps.

@@ -4,8 +4,8 @@ Statische Team-Website für **BeK Otto Lost** (Valorant): Verfügbarkeit, Team C
 
 | | |
 |---|---|
-| **Live** | https://spassigxd.github.io/zero-synergy-availability/ |
-| **Repository** | https://github.com/spassigxD/zero-synergy-availability |
+| **Live** | https://spassigxd.github.io/bek-otto-lost/ |
+| **Repository** | https://github.com/spassigxD/bek-otto-lost |
 
 ---
 
@@ -22,10 +22,10 @@ Statische Team-Website für **BeK Otto Lost** (Valorant): Verfügbarkeit, Team C
 
 | Seite | URL |
 |-------|-----|
-| **Availability** (Start) | https://spassigxd.github.io/zero-synergy-availability/ |
-| **Team Comps** | https://spassigxd.github.io/zero-synergy-availability/team-comps.html |
-| **Strats** (Map-Übersicht) | https://spassigxd.github.io/zero-synergy-availability/strats.html |
-| **Strats pro Map** (Beispiel Ascent) | https://spassigxd.github.io/zero-synergy-availability/strats-map.html?map=ascent |
+| **Availability** (Start) | https://spassigxd.github.io/bek-otto-lost/ |
+| **Team Comps** | https://spassigxd.github.io/bek-otto-lost/team-comps.html |
+| **Strats** (Map-Übersicht) | https://spassigxd.github.io/bek-otto-lost/strats.html |
+| **Strats pro Map** (Beispiel Ascent) | https://spassigxd.github.io/bek-otto-lost/strats-map.html?map=ascent |
 
 Weitere Map-Slugs: `bind`, `breeze`, `fracture`, `haven`, `lotus`, `pearl`, `corrode`, `split`.
 
