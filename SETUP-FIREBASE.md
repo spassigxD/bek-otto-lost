@@ -25,7 +25,10 @@ Ohne echte Werte bleibt der Banner **„Firebase nicht konfiguriert“** — die
 1. Links: **Build** → **Realtime Database**
 2. **Datenbank erstellen** → Region `europe-west1` → Testmodus ok
 
-## 3. Sicherheitsregeln
+## 3. Sicherheitsregeln (Realtime Database)
+
+**Direktlink (Projekt `znrgy-ccb87`):**  
+[https://console.firebase.google.com/project/znrgy-ccb87/database/znrgy-ccb87-default-rtdb/rules](https://console.firebase.google.com/project/znrgy-ccb87/database/znrgy-ccb87-default-rtdb/rules)
 
 Tab **Regeln** → einfügen → **Veröffentlichen**:
 
@@ -42,7 +45,11 @@ Tab **Regeln** → einfügen → **Veröffentlichen**:
 }
 ```
 
+Gleiche Regeln liegen im Repo als **`database.rules.json`** (`firebase deploy --only database`).
+
 Jeder mit dem Link kann lesen/schreiben — für ein kleines Team mit privatem Link oft ausreichend.
+
+**Wichtig:** Der Firebase-**Testmodus** setzt oft zeitlich begrenzte Regeln (`now < …`). Nach Ablauf (~30 Tage) liefert die API **`Permission denied`** / die App zeigt **„Zugriff VERWEIGERT“**. Dann Regeln oben erneut einfügen und **Veröffentlichen** — Config und Pfad `teams/zero-synergy/` müssen dafür nicht geändert werden.
 
 ## 4. Web-App & Config kopieren
 
@@ -98,7 +105,7 @@ Der Web-API-Key ist öffentlich — Schutz kommt von den **Regeln** (Schritt 3).
 |--------|--------|
 | Banner „Firebase nicht konfiguriert“ | Platzhalter in `firebase-config.js` ersetzen, pushen |
 | „Verbinde…“ bleibt hängen | Realtime Database existiert? Regeln **veröffentlicht**? Nach 10 s zeigt die App Offline/REST-Hinweis — F12 → Konsole |
-| Status „Offline“ / „Zugriff verweigert“ | Regeln (Abschnitt 3), `databaseURL`, Browser-Konsole (F12) |
+| Status „Offline“ / „Zugriff VERWEIGERT“ | Regeln (Abschnitt 3) **veröffentlichen** — oft abgelaufener Testmodus; `databaseURL` prüfen; F12 |
 | Nur „Nur lokal“ | Config fehlt oder ungültig |
 | Strats: Upload 0 % / Timeout | [Storage aktivieren](https://console.firebase.google.com/project/znrgy-ccb87/storage), Regeln aus `storage.rules`, `storageBucket` prüfen |
 | Strats: Upload scheitert lokal | Nicht `file://` — `py -m http.server 8765`, dann `http://127.0.0.1:8765/strats-map.html?map=…` |

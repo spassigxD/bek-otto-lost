@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "teams": {
+      "zero-synergy": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}

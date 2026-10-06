@@ -92,6 +92,7 @@ Kernteam: **Fynn**, **Muchel**, **Bjarne**, **Lucas**, **Jona**.
 - `firebase-config.js` enthält `apiKey`, `authDomain`, `databaseURL`, `projectId` und für Strats **`storageBucket`** (z. B. `znrgy-ccb87.firebasestorage.app`)
 - Die Datei ist **nicht** in `.gitignore` — für GitHub Pages muss sie im Repo liegen (Web-API-Keys sind öffentlich vorgesehen)
 - Vorlagen: `firebase-config.example.js`, `firebase-config.TEMPLATE.js`
+- **RTDB-Regeln:** `database.rules.json` im Repo → in der Console veröffentlichen (sonst „Zugriff VERWEIGERT“)
 - **Storage-Regeln:** `storage.rules` im Repo → in der Console veröffentlichen
 - **Blaze-Plan** nötig für Firebase Storage
 
@@ -136,6 +137,7 @@ Dann im Browser öffnen, z. B.:
 | `strats-map.html` / `strats-map.js` | Strats pro Map (Upload, Gruppen, Attack/Defence) |
 | `styles.css` | Gemeinsames Layout & Komponenten |
 | `firebase-config.js` | Firebase-Web-Config (deploy mit committen) |
+| `database.rules.json` | Realtime Database Security Rules |
 | `storage.rules` | Firebase Storage Security Rules |
 
 ---
@@ -148,9 +150,9 @@ Statische Assets nutzen Query-Parameter `?v=…`, damit Browser nach Deploy nich
 
 | Seite | Stand (Beispiel) |
 |-------|------------------|
-| `team-comps.html` | `styles.css?v=50`, `team-comps.js?v=50` |
-| `index.html` | `?v=50` |
-| `strats-map.html` | `styles.css?v=36`, `strats-map.js?v=35` |
+| `team-comps.html` | `styles.css?v=53`, `team-comps.js?v=53` |
+| `index.html` | `?v=53` |
+| `strats-map.html` | `styles.css?v=53`, `strats-map.js?v=53` |
 
 ### Git & Deploy
 

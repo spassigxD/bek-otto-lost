@@ -144,10 +144,10 @@ function setSyncStatus(mode) {
       "Der Plan ist sichtbar und lokal bearbeitbar. Team-Sync folgt, sobald Firebase erreichbar ist.";
     setRetryVisible(true);
   } else if (mode === "error-rules") {
-    el.textContent = "Zugriff verweigert";
+    el.textContent = "Zugriff VERWEIGERT";
     el.classList.add("sync-status--offline");
     el.title =
-      "Prüfe Realtime Database Regeln in Firebase Console (teams/zero-synergy) und klicke Veröffentlichen.";
+      "Realtime-Database-Regeln blockieren den Zugriff (oft abgelaufener Testmodus). Console → Realtime Database → Regeln → teams/zero-synergy mit .read/.write true → Veröffentlichen. Siehe SETUP-FIREBASE.md. Danach „Erneut verbinden“.";
     setRetryVisible(true);
   } else if (mode === "local") {
     el.textContent = "Nur lokal";
@@ -542,9 +542,16 @@ async function retryFirebaseSync() {
   setSyncStatus("loading");
   firebaseBootstrapped = false;
   clearFirebaseSdkTimer();
-  const ok = await bootstrapFirebaseViaRest();
-  if (!ok) return;
-  if (typeof firebase !== "undefined" && !dbRef) {
+  if (dbRef) {
+    try {
+      dbRef.off();
+    } catch {
+      /* ignore */
+    }
+    dbRef = null;
+  }
+  await bootstrapFirebaseViaRest();
+  if (typeof firebase !== "undefined") {
     initFirebaseSdk();
   }
 }
