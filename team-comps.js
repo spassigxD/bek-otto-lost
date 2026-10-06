@@ -1,4 +1,4 @@
-const PLAYERS = ["Joletsgo", "spassig", "Stefan", "Horus", "Haidew"];
+const PLAYERS = ["Fynn", "Muchel", "Bjarne", "Lucas", "Jona"];
 
 const MAPS = [
   { id: "ascent", label: "Ascent" },

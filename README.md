@@ -67,14 +67,14 @@ Gemeinsame **Navigation** auf allen Seiten: **Availability** | **Team Comps** | 
 
 ## Team & Spielerlisten
 
-Die Roster unterscheiden sich je nach Seite (Quelle im Code):
+Roster (Quelle im Code, Availability und Team Comps gleich):
 
 | Kontext | Datei | Spieler (`PLAYERS`) |
 |---------|--------|---------------------|
-| **Availability** | `app.js` | `Joletsgoo`, `spassig`, `stefan`, `horus`, `Haidew`, `Pascal`, `Keena` |
-| **Team Comps** | `team-comps.js` | `Joletsgo`, `spassig`, `Stefan`, `Horus`, `Haidew` |
+| **Availability** | `app.js` | `Fynn`, `Muchel`, `Bjarne`, `Lucas`, `Jona` |
+| **Team Comps** | `team-comps.js` | `Fynn`, `Muchel`, `Bjarne`, `Lucas`, `Jona` |
 
-Kernteam laut Projekt: **Joletsgo**, **spassig**, **Stefan**, **Horus**, **Haidew**, **Keena** — auf der Availability-Seite zusätzlich **Pascal**; Schreibweisen in `app.js` können von Comps abweichen (z. B. `Joletsgoo` vs. `Joletsgo`).
+Kernteam: **Fynn**, **Muchel**, **Bjarne**, **Lucas**, **Jona**.
 
 ---
 
@@ -148,8 +148,8 @@ Statische Assets nutzen Query-Parameter `?v=…`, damit Browser nach Deploy nich
 
 | Seite | Stand (Beispiel) |
 |-------|------------------|
-| `team-comps.html` | `styles.css?v=37`, `team-comps.js?v=37` |
-| `index.html` | `?v=26` |
+| `team-comps.html` | `styles.css?v=38`, `team-comps.js?v=38` |
+| `index.html` | `?v=27` |
 | `strats-map.html` | `styles.css?v=35`, `strats-map.js?v=34` |
 
 ### Git & Deploy
