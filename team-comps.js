@@ -3,6 +3,7 @@ const PLAYERS = Object.freeze(["Fynn", "Muchel", "Bjarne", "Lucas", "Jona", "Luk
 const PLAYER_SET = new Set(PLAYERS);
 
 const MAPS = [
+  { id: "abyss", label: "Abyss" },
   { id: "ascent", label: "Ascent" },
   { id: "bind", label: "Bind" },
   { id: "breeze", label: "Breeze" },

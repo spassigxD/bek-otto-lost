@@ -1,4 +1,5 @@
 const MAPS = [
+  { id: "abyss", label: "Abyss" },
   { id: "ascent", label: "Ascent" },
   { id: "bind", label: "Bind" },
   { id: "breeze", label: "Breeze" },
