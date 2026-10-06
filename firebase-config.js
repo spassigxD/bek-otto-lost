@@ -1,5 +1,5 @@
 /**
- * Firebase-Web-Config — Zero Synergy (znrgy-ccb87).
+ * Firebase-Web-Config — BeK Otto Lost (znrgy-ccb87).
  * Siehe SETUP-FIREBASE.md.
  */
 window.FIREBASE_CONFIG = {

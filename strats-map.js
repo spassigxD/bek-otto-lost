@@ -2549,7 +2549,7 @@ function initStratsMapDelegation() {
 }
 
 function showInvalidMap() {
-  document.title = "Zero Synergy — Strats";
+  document.title = "BeK Otto Lost — Strats";
   const title = document.getElementById("mapTitle");
   if (title) title.textContent = "Map nicht gefunden";
   const main = document.querySelector(".strats-map-main");
@@ -2569,7 +2569,7 @@ function initPage() {
   }
 
   mapLabel = mapById[mapSlug].label;
-  document.title = `Zero Synergy — Strats · ${mapLabel}`;
+  document.title = `BeK Otto Lost — Strats · ${mapLabel}`;
   const title = document.getElementById("mapTitle");
   if (title) title.textContent = `Strats — ${mapLabel}`;
 

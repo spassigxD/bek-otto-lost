@@ -1,6 +1,6 @@
-# Zero Synergy — Team-Website
+# BeK Otto Lost — Team-Website
 
-Statische Team-Website für **Zero Synergy** (Valorant): Verfügbarkeit, Team Comps und Strats — gehostet auf **GitHub Pages** mit **Firebase** (Realtime Database + Storage) für teamweite Synchronisation.
+Statische Team-Website für **BeK Otto Lost** (Valorant): Verfügbarkeit, Team Comps und Strats — gehostet auf **GitHub Pages** mit **Firebase** (Realtime Database + Storage) für teamweite Synchronisation.
 
 | | |
 |---|---|
@@ -11,7 +11,7 @@ Statische Team-Website für **Zero Synergy** (Valorant): Verfügbarkeit, Team Co
 
 ## Projekt
 
-- **Zero Synergy** — interne Valorant-Team-Website (Availability, Comps, Strats)
+- **BeK Otto Lost** — interne Valorant-Team-Website (Availability, Comps, Strats)
 - **Technik:** reines HTML/CSS/JavaScript, keine Build-Pipeline
 - **Hosting:** GitHub Pages (`master`-Branch); Push auf `master` aktualisiert die Live-Seite nach ca. 1–2 Minuten
 - **Backend:** Firebase-Projekt **`znrgy-ccb87`** (Realtime Database + Storage, Blaze-Plan für Storage)
@@ -148,9 +148,9 @@ Statische Assets nutzen Query-Parameter `?v=…`, damit Browser nach Deploy nich
 
 | Seite | Stand (Beispiel) |
 |-------|------------------|
-| `team-comps.html` | `styles.css?v=38`, `team-comps.js?v=38` |
-| `index.html` | `?v=27` |
-| `strats-map.html` | `styles.css?v=35`, `strats-map.js?v=34` |
+| `team-comps.html` | `styles.css?v=39`, `team-comps.js?v=39` |
+| `index.html` | `?v=28` |
+| `strats-map.html` | `styles.css?v=36`, `strats-map.js?v=35` |
 
 ### Git & Deploy
 

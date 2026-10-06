@@ -1,4 +1,4 @@
-# Strats-Upload — Fehlersuche (Zero Synergy)
+# Strats-Upload — Fehlersuche (BeK Otto Lost)
 
 Projekt: **znrgy-ccb87** · Bucket: **znrgy-ccb87.firebasestorage.app**
 
