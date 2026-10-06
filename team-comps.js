@@ -1,5 +1,6 @@
 /** Canonical roster — column headers ALWAYS use this list (never Firebase/localStorage keys). */
 const PLAYERS = Object.freeze(["Fynn", "Muchel", "Bjarne", "Lucas", "Jona"]);
+const PLAYER_SET = new Set(PLAYERS);
 
 const MAPS = [
   { id: "ascent", label: "Ascent" },
@@ -89,6 +90,31 @@ function cellKey(mapId, player) {
   return `${mapId}|${player}`;
 }
 
+/** Drop stored cells for players/maps outside the code roster so old names never linger. */
+function pruneCompsToRoster(raw) {
+  if (!raw || typeof raw !== "object") return {};
+  const mapIds = new Set(MAPS.map((m) => m.id));
+  const next = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const sep = key.indexOf("|");
+    if (sep < 0) continue;
+    const mapId = key.slice(0, sep);
+    const player = key.slice(sep + 1);
+    if (!mapIds.has(mapId) || !PLAYER_SET.has(player)) continue;
+    if (Array.isArray(value) && value.length) next[key] = value;
+  }
+  return next;
+}
+
+function assignComps(raw, { persistIfPruned = false } = {}) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const pruned = pruneCompsToRoster(source);
+  const changed = JSON.stringify(pruned) !== JSON.stringify(source);
+  comps = pruned;
+  if (persistIfPruned && changed) schedulePersist();
+  return changed;
+}
+
 function mapLabel(mapId) {
   return MAPS.find((m) => m.id === mapId)?.label ?? mapId;
 }
@@ -103,6 +129,7 @@ function getCellAgents(mapId, player) {
 }
 
 function setCellAgents(mapId, player, agents) {
+  if (!PLAYER_SET.has(player)) return;
   const key = cellKey(mapId, player);
   const list = agents.filter(Boolean).slice(0, MAX_AGENTS_PER_CELL);
   if (list.length) {
@@ -745,16 +772,21 @@ function onCellDrop(e) {
 }
 
 function applyRemoteComps(remote) {
-  const json = JSON.stringify(remote || {});
+  const pruned = pruneCompsToRoster(remote);
+  const json = JSON.stringify(pruned);
   if (json === lastPushedJson) return;
-  comps = remote && typeof remote === "object" ? remote : {};
+  const source = remote && typeof remote === "object" ? remote : {};
+  const prunedAway = JSON.stringify(pruned) !== JSON.stringify(source);
+  comps = pruned;
   refreshAllCells();
   saveCompsToLocalStorage();
+  if (prunedAway) schedulePersist();
   setSyncStatus("live");
 }
 
 function bootstrapUI() {
-  comps = loadCompsFromLocalStorage();
+  assignComps(loadCompsFromLocalStorage(), { persistIfPruned: false });
+  saveCompsToLocalStorage();
   buildAgentSidebar();
   buildCompsGrid();
 }
@@ -779,11 +811,14 @@ async function fetchCompsViaRest() {
 }
 
 function applyInitialRemoteComps(remote) {
-  const remoteComps = remote && typeof remote === "object" ? remote : {};
+  const remoteComps = pruneCompsToRoster(remote);
   const hasRemote = Object.keys(remoteComps).length > 0;
-  const localComps = loadCompsFromLocalStorage();
+  const localComps = pruneCompsToRoster(loadCompsFromLocalStorage());
   const hasLocal = Object.keys(localComps).length > 0;
   const migrated = localStorage.getItem(MIGRATION_KEY);
+  const rawRemote = remote && typeof remote === "object" ? remote : {};
+  const remoteHadExtras =
+    JSON.stringify(remoteComps) !== JSON.stringify(rawRemote);
 
   if (!hasRemote && hasLocal && !migrated) {
     comps = { ...localComps };
@@ -792,6 +827,7 @@ function applyInitialRemoteComps(remote) {
   } else {
     comps = remoteComps;
     if (hasRemote) localStorage.setItem(MIGRATION_KEY, "1");
+    if (remoteHadExtras) persistComps();
   }
   refreshAllCells();
   saveCompsToLocalStorage();
@@ -820,7 +856,8 @@ function failFirebaseStartup(err) {
     err?.code === "PERMISSION_DENIED" || err?.code === "permission_denied";
   if (!firebaseBootstrapped) {
     firebaseBootstrapped = true;
-    comps = loadCompsFromLocalStorage();
+    assignComps(loadCompsFromLocalStorage(), { persistIfPruned: false });
+    saveCompsToLocalStorage();
     refreshAllCells();
   }
   setSyncStatus(isRules ? "error-rules" : "offline-local");
